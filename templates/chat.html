@@ -323,18 +323,15 @@
 
       let processedText = String(text);
 
-      // Forcefully sanitize malformed markdown bullet points from the AI
-      processedText = processedText.replace(/^[\s*•-]*\**Date:\**\s*/gim, "**Date:** ");
-      processedText = processedText.replace(/^[\s*•-]*\**Time:\**\s*/gim, "**Time:** ");
-      processedText = processedText.replace(/^[\s*•-]*\**Meeting Type:\**\s*/gim, "**Meeting Type:** ");
-      processedText = processedText.replace(/^[\s*•-]*\**Visa Type:\**\s*/gim, "**Visa Type:** ");
+      // Removed aggressive Date/Time markdown sanitization because it corrupted valid conversational questions
+      // and caused UI rendering bugs when combined with the bullet list parser.
 
       let cardHtml = "";
 
       const slot = extractConsultationSlot(processedText);
       if (slot) {
         const url = `/book-appointment?start=${slot.start}&end=${slot.end}&type=${encodeURIComponent(slot.type)}&visa_type=${encodeURIComponent(slot.visaType)}`;
-        
+
         cardHtml = `
           <div style="margin-top: 4px; margin-bottom: 4px; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background: #ffffff; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);">
             <div style="background: linear-gradient(135deg, #2563eb, #0ea5e9); color: white; padding: 14px 18px; font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; letter-spacing: 0.01em;">
@@ -358,17 +355,17 @@
                 <strong style="color: #0f172a; text-align: right;">${slot.visaType}</strong>
               </div>
               <a href="${url}" target="_blank" rel="noopener noreferrer" style="margin-top: 10px; text-decoration: none; display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; padding: 12px; background: linear-gradient(135deg, #0f172a, #1e293b); box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2); color: white; border-radius: 10px; font-weight: 600; font-size: 14px; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(15, 23, 42, 0.3)'" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 12px rgba(15, 23, 42, 0.2)'">
-                  Save the Date <span>📅</span>
+                  Book on Google Calendar <span>📅</span>
               </a>
             </div>
           </div>
         `;
-        
+
         let blockRegex;
         if (processedText.match(/Visa Type/i)) {
-            blockRegex = /(?:[-*#•\s]*Consultation Slot[\s\S]*?Visa Type[^\n]*\n?)/i;
+          blockRegex = /(?:[-*#•\s]*Consultation Slot[\s\S]*?Visa Type[^\n]*\n?)/i;
         } else {
-            blockRegex = /(?:[-*#•\s]*Consultation Slot[\s\S]*?Meeting Type[^\n]*\n?)/i;
+          blockRegex = /(?:[-*#•\s]*Consultation Slot[\s\S]*?Meeting Type[^\n]*\n?)/i;
         }
         processedText = processedText.replace(blockRegex, "\n__CARD_PLACEHOLDER__\n");
       }
@@ -396,8 +393,8 @@
           return;
         }
 
-        // Bullet lists: support "-", "•", or "*" with flexible spacing
-        const bulletMatch = trimmed.match(/^[-•*]\s*(.+)/);
+        // Bullet lists: support "-", "•", or "*" requiring at least one space after the bullet
+        const bulletMatch = trimmed.match(/^[-•*]\s+(.+)/);
         if (bulletMatch) {
           if (!inList) {
             html += "<ul>";
@@ -428,7 +425,7 @@
       }
 
       if (cardHtml) {
-          html = html.replace(/\s*<p>__CARD_PLACEHOLDER__<\/p>\s*/g, "").replace(/\s*__CARD_PLACEHOLDER__\s*/g, "");
+        html = html.replace(/\s*<p>__CARD_PLACEHOLDER__<\/p>\s*/g, "").replace(/\s*__CARD_PLACEHOLDER__\s*/g, "");
       }
 
       return { html: html.trim(), card: cardHtml };
@@ -450,128 +447,129 @@
       // More robust fallback using simple regex for date parsing or natural language
       const dateRegex = /Date:\s*([^\n]+)/i;
       const timeRegex = /Time:\s*([^\n]+)/i;
-      
+
       let dateStr, timeStr;
-      
+
       const dMatch = text.match(dateRegex);
       const tMatch = text.match(timeRegex);
-      
+
       if (dMatch && tMatch) {
-         dateStr = dMatch[1].trim();
-         timeStr = tMatch[1].trim();
+        dateStr = dMatch[1].trim();
+        timeStr = tMatch[1].trim();
       } else {
         // Fallback for combined text like "7th next month 4 PM - 5 PM"
         const combinedRegex = /(.*?)(?:(?:at\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:to|-|–)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)?))/i;
         const match = text.match(combinedRegex);
         if (match) {
-           dateStr = match[1].trim();
-           timeStr = match[2].trim();
+          dateStr = match[1].trim();
+          timeStr = match[2].trim();
         } else {
-           // Fallback to exactly what the AI usually outputs
-           // We will try to parse it anyway
-           const parts = text.split(/(?=\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:to|-|–))/i);
-           if (parts.length >= 2) {
-              dateStr = parts[0].trim();
-              timeStr = parts.slice(1).join("").trim();
-           } else {
-             return null;
-           }
+          // Fallback to exactly what the AI usually outputs
+          // We will try to parse it anyway
+          const parts = text.split(/(?=\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:to|-|–))/i);
+          if (parts.length >= 2) {
+            dateStr = parts[0].trim();
+            timeStr = parts.slice(1).join("").trim();
+          } else {
+            return null;
+          }
         }
       }
 
       // Try to parse the time string "4 PM - 5 PM" or "14:00 - 15:00"
       const timeParts = timeStr.split(/(?:to|-|–)/i);
-      if (timeParts.length < 2) return null;
-      
+
       const startStr = timeParts[0].trim();
-      const endStr = timeParts[1].trim();
+      const endStr = timeParts.length >= 2 ? timeParts[1].trim() : "";
 
       let cleanDateStr = dateStr.replace(/(\d+)(st|nd|rd|th)/gi, '$1').trim();
       let parsedDate = null;
       const now = new Date();
-      
+
       const months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
       const shortMonths = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-      
+
       let foundMonth = -1;
       let foundDay = null;
       let foundYear = now.getFullYear();
-      
+
       const lowerDateStr = cleanDateStr.toLowerCase();
-      
+
       // Look for a month name
       for (let i = 0; i < 12; i++) {
-         if (lowerDateStr.includes(months[i])) {
-             foundMonth = i;
-             break;
-         }
-         if (lowerDateStr.includes(shortMonths[i])) {
-             foundMonth = i;
-             break;
-         }
+        if (lowerDateStr.includes(months[i])) {
+          foundMonth = i;
+          break;
+        }
+        if (lowerDateStr.includes(shortMonths[i])) {
+          foundMonth = i;
+          break;
+        }
       }
-      
+
       // Look for a day
       const dayMatch = lowerDateStr.match(/\b(\d{1,2})\b/);
       if (dayMatch) {
-         foundDay = parseInt(dayMatch[1]);
+        foundDay = parseInt(dayMatch[1]);
       }
-      
+
       // Look for a year
       const yearMatch = lowerDateStr.match(/\b(20\d{2})\b/);
       if (yearMatch) {
-         foundYear = parseInt(yearMatch[1]);
+        foundYear = parseInt(yearMatch[1]);
       }
-      
+
       if (foundMonth !== -1 && foundDay !== null) {
-          parsedDate = new Date(foundYear, foundMonth, foundDay);
-          if (!yearMatch && parsedDate.getTime() < Date.now() - 86400000) {
-              parsedDate.setFullYear(foundYear + 1);
-          }
+        parsedDate = new Date(foundYear, foundMonth, foundDay);
+        if (!yearMatch && parsedDate.getTime() < Date.now() - 86400000) {
+          parsedDate.setFullYear(foundYear + 1);
+        }
       } else {
-          // Fallback to "next month" or "just day"
-          const nextMonthRegex = /(\d{1,2})\s*(?:of\s*)?next\s*month/i;
-          const nmMatch = cleanDateStr.match(nextMonthRegex);
-          if (nmMatch) {
-             const day = parseInt(nmMatch[1]);
-             parsedDate = new Date(now.getFullYear(), now.getMonth() + 1, day);
+        // Fallback to "next month" or "just day"
+        const nextMonthRegex = /(\d{1,2})\s*(?:of\s*)?next\s*month/i;
+        const nmMatch = cleanDateStr.match(nextMonthRegex);
+        if (nmMatch) {
+          const day = parseInt(nmMatch[1]);
+          parsedDate = new Date(now.getFullYear(), now.getMonth() + 1, day);
+        } else {
+          // Try current month with just a day, assuming the month was omitted completely
+          const dayRegex = /\b(\d{1,2})\b/;
+          const d = cleanDateStr.match(dayRegex);
+          if (d) {
+            const day = parseInt(d[1]);
+            parsedDate = new Date(now.getFullYear(), now.getMonth(), day);
+            // If the day has already passed, assume next month
+            if (parsedDate < now) {
+              parsedDate.setMonth(parsedDate.getMonth() + 1);
+            }
           } else {
-             // Try current month with just a day, assuming the month was omitted completely
-             const dayRegex = /\b(\d{1,2})\b/;
-             const d = cleanDateStr.match(dayRegex);
-             if (d) {
-                const day = parseInt(d[1]);
-                parsedDate = new Date(now.getFullYear(), now.getMonth(), day);
-                // If the day has already passed, assume next month
-                if (parsedDate < now) {
-                   parsedDate.setMonth(parsedDate.getMonth() + 1);
-                }
-             } else {
-                 return null; // Could not parse date
-             }
+            return null; // Could not parse date
           }
+        }
       }
 
       function parseTime(tStr) {
-          const match = tStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
-          if (!match) return { hours: 0, minutes: 0 };
-          let h = parseInt(match[1]);
-          const m = match[2] ? parseInt(match[2]) : 0;
-          const ampm = match[3] ? match[3].toLowerCase() : null;
-          
-          if (ampm === 'pm' && h < 12) h += 12;
-          if (ampm === 'am' && h === 12) h = 0;
-          return { hours: h, minutes: m };
+        const match = tStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+        if (!match) return { hours: 0, minutes: 0 };
+        let h = parseInt(match[1]);
+        const m = match[2] ? parseInt(match[2]) : 0;
+        const ampm = match[3] ? match[3].toLowerCase() : null;
+
+        if (ampm === 'pm' && h < 12) h += 12;
+        if (ampm === 'am' && h === 12) h = 0;
+        return { hours: h, minutes: m };
       }
 
       const sTime = parseTime(startStr);
-      const eTime = parseTime(endStr);
-      
+      const eTime = endStr ? parseTime(endStr) : { hours: sTime.hours + 1, minutes: sTime.minutes };
+
+      if (eTime.hours >= 24) eTime.hours -= 24;
+
       // If end time has am/pm but start doesn't, inherit it (e.g. "4 - 5 PM")
-      if (!startStr.match(/am|pm/i) && endStr.match(/am|pm/i)) {
-         const endAmPm = endStr.match(/am|pm/i)[0].toLowerCase();
-         if (endAmPm === 'pm' && sTime.hours < 12) sTime.hours += 12;
-         if (endAmPm === 'am' && sTime.hours === 12) sTime.hours = 0;
+      if (endStr && !startStr.match(/am|pm/i) && endStr.match(/am|pm/i)) {
+        const endAmPm = endStr.match(/am|pm/i)[0].toLowerCase();
+        if (endAmPm === 'pm' && sTime.hours < 12) sTime.hours += 12;
+        if (endAmPm === 'am' && sTime.hours === 12) sTime.hours = 0;
       }
 
       const startDate = new Date(parsedDate);
@@ -587,12 +585,12 @@
         const hh = String(d.getUTCHours()).padStart(2, "0");
         const min = String(d.getUTCMinutes()).padStart(2, "0");
         const ss = String(d.getUTCSeconds()).padStart(2, "0");
-        return `${yyyy}${mm}${dd}T${hh}${min}${ss}Z`; 
+        return `${yyyy}${mm}${dd}T${hh}${min}${ss}Z`;
       }
 
-      return { 
-          start: formatUTC(startDate), 
-          end: formatUTC(endDate) 
+      return {
+        start: formatUTC(startDate),
+        end: formatUTC(endDate)
       };
     }
 
@@ -627,9 +625,9 @@
       } else {
         const parsed = renderAiMarkdown(text);
         if (parsed.html) {
-            bubble.innerHTML = parsed.html;
+          bubble.innerHTML = parsed.html;
         } else {
-            bubble.style.display = 'none'; // hide bubble if AI only output the card block
+          bubble.style.display = 'none'; // hide bubble if AI only output the card block
         }
         cardStr = parsed.card;
       }
@@ -637,11 +635,11 @@
       col.appendChild(bubble);
 
       if (cardStr) {
-          const cardContainer = document.createElement("div");
-          cardContainer.style.width = "100%";
-          cardContainer.style.maxWidth = "360px";
-          cardContainer.innerHTML = cardStr;
-          col.appendChild(cardContainer);
+        const cardContainer = document.createElement("div");
+        cardContainer.style.width = "100%";
+        cardContainer.style.maxWidth = "360px";
+        cardContainer.innerHTML = cardStr;
+        col.appendChild(cardContainer);
       }
 
       row.appendChild(col);
@@ -657,23 +655,23 @@
 
       if (!animate || role === "client") {
         if (role === "client") {
-            bubble.textContent = text;
-            bubble.style.display = "block";
+          bubble.textContent = text;
+          bubble.style.display = "block";
         } else {
-            const parsed = renderAiMarkdown(text);
-            if (parsed.html) {
-                bubble.innerHTML = parsed.html;
-                bubble.style.display = "block";
-            } else {
-                bubble.style.display = "none";
-            }
-            if (parsed.card) {
-                const c = document.createElement("div");
-                c.style.width = "100%";
-                c.style.maxWidth = "360px";
-                c.innerHTML = parsed.card;
-                col.appendChild(c);
-            }
+          const parsed = renderAiMarkdown(text);
+          if (parsed.html) {
+            bubble.innerHTML = parsed.html;
+            bubble.style.display = "block";
+          } else {
+            bubble.style.display = "none";
+          }
+          if (parsed.card) {
+            const c = document.createElement("div");
+            c.style.width = "100%";
+            c.style.maxWidth = "360px";
+            c.innerHTML = parsed.card;
+            col.appendChild(c);
+          }
         }
         scrollToBottom();
         return;
@@ -684,9 +682,9 @@
       const cardText = parsed.card;
 
       if (!htmlText) {
-          bubble.style.display = "none";
+        bubble.style.display = "none";
       } else {
-          bubble.style.display = "block";
+        bubble.style.display = "block";
       }
 
       const clone = bubble.cloneNode(true);
@@ -712,20 +710,20 @@
           scrollToBottom();
           requestAnimationFrame(step);
         } else if (cardText) {
-            const c = document.createElement("div");
-            c.style.width = "100%";
-            c.style.maxWidth = "360px";
-            c.style.opacity = "0";
-            c.style.transform = "translateY(10px)";
-            c.style.transition = "all 0.4s ease";
-            c.innerHTML = cardText;
-            col.appendChild(c);
-            
-            // trigger reflow
-            void c.offsetWidth;
-            c.style.opacity = "1";
-            c.style.transform = "translateY(0)";
-            scrollToBottom();
+          const c = document.createElement("div");
+          c.style.width = "100%";
+          c.style.maxWidth = "360px";
+          c.style.opacity = "0";
+          c.style.transform = "translateY(10px)";
+          c.style.transition = "all 0.4s ease";
+          c.innerHTML = cardText;
+          col.appendChild(c);
+
+          // trigger reflow
+          void c.offsetWidth;
+          c.style.opacity = "1";
+          c.style.transform = "translateY(0)";
+          scrollToBottom();
         }
       }
       step();
