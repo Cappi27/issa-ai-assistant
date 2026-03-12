@@ -330,7 +330,8 @@
 
       const slot = extractConsultationSlot(processedText);
       if (slot) {
-        const url = `/book-appointment?start=${slot.start}&end=${slot.end}&type=${encodeURIComponent(slot.type)}&visa_type=${encodeURIComponent(slot.visaType)}`;
+        const offset = new Date().getTimezoneOffset();
+        const url = `/book-appointment?start=${slot.start}&end=${slot.end}&tz=${offset}&type=${encodeURIComponent(slot.type)}&visa_type=${encodeURIComponent(slot.visaType)}`;
 
         cardHtml = `
           <div style="margin-top: 4px; margin-bottom: 4px; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background: #ffffff; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);">
