@@ -2,3 +2,4 @@ gunicorn
 Flask
 python-dotenv
 openai
+supabase
