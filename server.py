@@ -217,6 +217,7 @@ def book_appointment():
 
     start = request.args.get("start")
     end = request.args.get("end")
+    tz_offset = request.args.get("tz")
     meeting_type = request.args.get("type", "Online").lower()
     visa_type = request.args.get("visa_type", "Thailand DTV Visa")
 
@@ -249,6 +250,17 @@ def book_appointment():
             try:
                 start_dt = datetime.strptime(log_start.replace("Z", ""), "%Y%m%dT%H%M%S")
                 end_dt = datetime.strptime(log_end.replace("Z", ""), "%Y%m%dT%H%M%S")
+                
+                # Adjust UTC to local time using the frontend's provided timezone offset (minutes)
+                # JS getTimezoneOffset() gives minutes to ADD to local to equal UTC. To get local from UTC, subtract the offset.
+                if tz_offset:
+                    try:
+                        offset_mins = int(tz_offset)
+                        start_dt = start_dt - timedelta(minutes=offset_mins)
+                        end_dt = end_dt - timedelta(minutes=offset_mins)
+                    except ValueError:
+                        pass
+                
                 log_start_str = start_dt.strftime("%B %d, %Y, %I:%M %p")
                 log_end_str = end_dt.strftime("%B %d, %Y, %I:%M %p")
             except ValueError:
