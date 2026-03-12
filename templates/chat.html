@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Issa AI Visa Assistant – Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card-bg: #ffffff;
+      --border: #e0e3eb;
+      --user-bubble: #2f6feb;
+      --user-text: #ffffff;
+      --ai-bubble: #f0f1f5;
+      --ai-text: #111827;
+      --accent: #2f6feb;
+      --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #e0e7ff, #f9fafb 55%);
+      color: #111827;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .chat-shell {
+      width: 100%;
+      max-width: 960px;
+      padding: 24px;
+    }
+
+    .chat-card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 80vh;
+      max-height: 760px;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #22c55e, #0ea5e9);
+      color: #f9fafb;
+      font-weight: 600;
+      font-size: 20px;
+      box-shadow: 0 8px 18px rgba(34, 197, 94, 0.45);
+    }
+
+    .chat-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .chat-title h1 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .chat-title p {
+      margin: 0;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .chat-body {
+      flex: 1;
+      padding: 18px 20px 12px;
+      overflow-y: auto;
+      background: linear-gradient(to bottom,
+          rgba(248, 250, 252, 0.9),
+          rgba(248, 250, 252, 0.6));
+    }
+
+    .messages {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message-row {
+      display: flex;
+      width: 100%;
+    }
+
+    .message-row.ai {
+      justify-content: flex-start;
+    }
+
+    .message-row.user {
+      justify-content: flex-end;
+    }
+
+    .bubble {
+      max-width: 70%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.4;
+      position: relative;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    .bubble.ai {
+      background: var(--ai-bubble);
+      color: var(--ai-text);
+      border-bottom-left-radius: 6px;
+    }
+
+    /* Improved AI content formatting */
+    .bubble.ai h3 {
+      margin: 10px 0 6px;
+      font-size: 15px;
+      line-height: 1.3;
+    }
+
+    .bubble.ai p {
+      margin: 6px 0;
+    }
+
+    .bubble.ai ul {
+      margin: 6px 0 6px 18px;
+      padding: 0;
+    }
+
+    .bubble.ai li {
+      margin: 3px 0;
+    }
+
+    .bubble.ai strong {
+      font-weight: 600;
+    }
+
+    .bubble.user {
+      background: var(--user-bubble);
+      color: var(--user-text);
+      border-bottom-right-radius: 6px;
+    }
+
+    .meta {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+
+    .typing {
+      font-size: 13px;
+      color: #6b7280;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .typing-dots span {
+      display: inline-block;
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: #9ca3af;
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+
+    .typing-dots span:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    .typing-dots span:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    @keyframes bounce {
+
+      0%,
+      80%,
+      100% {
+        transform: translateY(0);
+        opacity: 0.35;
+      }
+
+      40% {
+        transform: translateY(-3px);
+        opacity: 1;
+      }
+    }
+
+    .chat-footer {
+      padding: 10px 12px 14px;
+      border-top: 1px solid var(--border);
+      background: #f9fafb;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      background: #ffffff;
+      border-radius: 999px;
+      padding: 6px 8px 6px 14px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    .input-row textarea {
+      flex: 1;
+      border: none;
+      resize: none;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.4;
+      padding: 6px 0;
+      outline: none;
+      max-height: 80px;
+    }
+
+    .send-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 14px;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.35);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.08s ease;
+      white-space: nowrap;
+    }
+
+    .send-btn:disabled {
+      opacity: 0.4;
+      box-shadow: none;
+      cursor: default;
+    }
+
+    .send-btn:not(:disabled):active {
+      transform: translateY(1px);
+      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3);
+    }
+
+    @media (max-width: 720px) {
+      .chat-card {
+        height: 100vh;
+        max-height: none;
+        border-radius: 0;
+      }
+
+      .chat-shell {
+        padding: 0;
+      }
+
+      .bubble {
+        max-width: 80%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="chat-shell">
+    <div class="chat-card">
+      <header class="chat-header">
+        <div class="chat-avatar">🇹🇭</div>
+        <div class="chat-title">
+          <h1>Thailand DTV Visa Assistant</h1>
+          <p>Ask anything about applying for the Destination Thailand Visa</p>
+        </div>
+      </header>
+
+      <main class="chat-body">
+        <div id="messages" class="messages"></div>
+      </main>
+
+      <footer class="chat-footer">
+        <form id="chat-form" class="input-row">
+          <textarea id="message-input" rows="1" placeholder="Ask a question about the Thailand DTV visa…"></textarea>
+          <button type="submit" id="send-btn" class="send-btn">
+            <span>Send</span>
+            <span>➤</span>
+          </button>
+        </form>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    function renderAiMarkdown(text) {
+      if (!text) return "";
+
+      let processedText = String(text);
+
+      // Forcefully sanitize malformed markdown bullet points from the AI
+      processedText = processedText.replace(/\*Date:\*\*/g, "**Date:**");
+      processedText = processedText.replace(/\*Time:\*\*/g, "**Time:**");
+      processedText = processedText.replace(/\*Meeting Type:\*\*/g, "**Meeting Type:**");
+      processedText = processedText.replace(/\*Visa Type:\*\*/g, "**Visa Type:**");
+
+      let cardHtml = "";
+
+      const slot = extractConsultationSlot(processedText);
+      if (slot) {
+        const url = `/book-appointment?start=${slot.start}&end=${slot.end}&type=${encodeURIComponent(slot.type)}&visa_type=${encodeURIComponent(slot.visaType)}`;
+        
+        cardHtml = `
+          <div style="margin-top: 4px; margin-bottom: 4px; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background: #ffffff; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);">
+            <div style="background: linear-gradient(135deg, #2563eb, #0ea5e9); color: white; padding: 14px 18px; font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; letter-spacing: 0.01em;">
+              <span style="font-size: 18px;">📅</span> <span style="text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Consultation Details</span>
+            </div>
+            <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; justify-content: space-between; font-size: 14px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
+                <span style="color: #64748b; font-weight: 500;">Date</span>
+                <strong style="color: #0f172a; text-align: right;">${slot.rawDate}</strong> 
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 14px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
+                <span style="color: #64748b; font-weight: 500;">Time</span>
+                <strong style="color: #0f172a; text-align: right;">${slot.rawTime}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 14px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
+                <span style="color: #64748b; font-weight: 500;">Type</span>
+                <strong style="color: #0f172a; text-align: right;">${slot.type}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 14px; padding-bottom: 4px;">
+                <span style="color: #64748b; font-weight: 500;">Visa Type</span>
+                <strong style="color: #0f172a; text-align: right;">${slot.visaType}</strong>
+              </div>
+              <a href="${url}" target="_blank" rel="noopener noreferrer" style="margin-top: 10px; text-decoration: none; display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; padding: 12px; background: linear-gradient(135deg, #0f172a, #1e293b); box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2); color: white; border-radius: 10px; font-weight: 600; font-size: 14px; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(15, 23, 42, 0.3)'" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 12px rgba(15, 23, 42, 0.2)'">
+                  Save the Date <span>📅</span>
+              </a>
+            </div>
+          </div>
+        `;
+        
+        let blockRegex;
+        if (processedText.match(/Visa Type/i)) {
+            blockRegex = /(?:[-*#•\s]*Consultation Slot[\s\S]*?Visa Type[^\n]*\n?)/i;
+        } else {
+            blockRegex = /(?:[-*#•\s]*Consultation Slot[\s\S]*?Meeting Type[^\n]*\n?)/i;
+        }
+        processedText = processedText.replace(blockRegex, "\n__CARD_PLACEHOLDER__\n");
+      }
+
+      const lines = processedText.split("\n");
+      let html = "";
+      let inList = false;
+
+      function formatInline(str) {
+        return str.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      }
+
+      lines.forEach((line) => {
+        const trimmed = line.trim();
+
+        // Heading ###
+        if (trimmed.startsWith("### ")) {
+          if (inList) {
+            html += "</ul>";
+            inList = false;
+          }
+          const rawHeading = trimmed.replace(/^### /, "");
+          const heading = formatInline(rawHeading);
+          html += `<h3>${heading}</h3>`;
+          return;
+        }
+
+        // Bullet lists: support "-", "•", or "*" with flexible spacing
+        const bulletMatch = trimmed.match(/^[-•*]\s*(.+)/);
+        if (bulletMatch) {
+          if (!inList) {
+            html += "<ul>";
+            inList = true;
+          }
+          const item = formatInline(bulletMatch[1]);
+          html += `<li>${item}</li>`;
+          return;
+        }
+
+        // Close list if needed
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+
+        // Inline formatting
+        let formatted = formatInline(trimmed);
+
+        // Paragraph
+        if (formatted) {
+          html += `<p>${formatted}</p>`;
+        }
+      });
+
+      if (inList) {
+        html += "</ul>";
+      }
+
+      if (cardHtml) {
+          html = html.replace(/\s*<p>__CARD_PLACEHOLDER__<\/p>\s*/g, "").replace(/\s*__CARD_PLACEHOLDER__\s*/g, "");
+      }
+
+      return { html: html.trim(), card: cardHtml };
+    }
+
+    const messagesEl = document.getElementById("messages");
+    const formEl = document.getElementById("chat-form");
+    const inputEl = document.getElementById("message-input");
+    const sendBtn = document.getElementById("send-btn");
+
+    // Chat history maintained on the frontend for /generate-reply
+    // Structure: [{ role: "consultant" | "client", message: "..." }, ...]
+    const chatHistory = [];
+
+    function parseBookingTime(text) {
+      if (!text) return null;
+
+      // Extract details flexibly. E.g.: "7th next month 4 PM – 5 PM" or "7 next month 9am to 10:30am"
+      // More robust fallback using simple regex for date parsing or natural language
+      const dateRegex = /Date:\s*([^\n]+)/i;
+      const timeRegex = /Time:\s*([^\n]+)/i;
+      
+      let dateStr, timeStr;
+      
+      const dMatch = text.match(dateRegex);
+      const tMatch = text.match(timeRegex);
+      
+      if (dMatch && tMatch) {
+         dateStr = dMatch[1].trim();
+         timeStr = tMatch[1].trim();
+      } else {
+        // Fallback for combined text like "7th next month 4 PM - 5 PM"
+        const combinedRegex = /(.*?)(?:(?:at\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:to|-|–)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)?))/i;
+        const match = text.match(combinedRegex);
+        if (match) {
+           dateStr = match[1].trim();
+           timeStr = match[2].trim();
+        } else {
+           // Fallback to exactly what the AI usually outputs
+           // We will try to parse it anyway
+           const parts = text.split(/(?=\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:to|-|–))/i);
+           if (parts.length >= 2) {
+              dateStr = parts[0].trim();
+              timeStr = parts.slice(1).join("").trim();
+           } else {
+             return null;
+           }
+        }
+      }
+
+      // Try to parse the time string "4 PM - 5 PM" or "14:00 - 15:00"
+      const timeParts = timeStr.split(/(?:to|-|–)/i);
+      if (timeParts.length < 2) return null;
+      
+      const startStr = timeParts[0].trim();
+      const endStr = timeParts[1].trim();
+
+      let cleanDateStr = dateStr.replace(/(\d+)(st|nd|rd|th)/gi, '$1').trim();
+      let parsedDate = null;
+      const now = new Date();
+      
+      const months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+      const shortMonths = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+      
+      let foundMonth = -1;
+      let foundDay = null;
+      let foundYear = now.getFullYear();
+      
+      const lowerDateStr = cleanDateStr.toLowerCase();
+      
+      // Look for a month name
+      for (let i = 0; i < 12; i++) {
+         if (lowerDateStr.includes(months[i])) {
+             foundMonth = i;
+             break;
+         }
+         if (lowerDateStr.includes(shortMonths[i])) {
+             foundMonth = i;
+             break;
+         }
+      }
+      
+      // Look for a day
+      const dayMatch = lowerDateStr.match(/\b(\d{1,2})\b/);
+      if (dayMatch) {
+         foundDay = parseInt(dayMatch[1]);
+      }
+      
+      // Look for a year
+      const yearMatch = lowerDateStr.match(/\b(20\d{2})\b/);
+      if (yearMatch) {
+         foundYear = parseInt(yearMatch[1]);
+      }
+      
+      if (foundMonth !== -1 && foundDay !== null) {
+          parsedDate = new Date(foundYear, foundMonth, foundDay);
+          if (!yearMatch && parsedDate.getTime() < Date.now() - 86400000) {
+              parsedDate.setFullYear(foundYear + 1);
+          }
+      } else {
+          // Fallback to "next month" or "just day"
+          const nextMonthRegex = /(\d{1,2})\s*(?:of\s*)?next\s*month/i;
+          const nmMatch = cleanDateStr.match(nextMonthRegex);
+          if (nmMatch) {
+             const day = parseInt(nmMatch[1]);
+             parsedDate = new Date(now.getFullYear(), now.getMonth() + 1, day);
+          } else {
+             // Try current month with just a day, assuming the month was omitted completely
+             const dayRegex = /\b(\d{1,2})\b/;
+             const d = cleanDateStr.match(dayRegex);
+             if (d) {
+                const day = parseInt(d[1]);
+                parsedDate = new Date(now.getFullYear(), now.getMonth(), day);
+                // If the day has already passed, assume next month
+                if (parsedDate < now) {
+                   parsedDate.setMonth(parsedDate.getMonth() + 1);
+                }
+             } else {
+                 return null; // Could not parse date
+             }
+          }
+      }
+
+      function parseTime(tStr) {
+          const match = tStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+          if (!match) return { hours: 0, minutes: 0 };
+          let h = parseInt(match[1]);
+          const m = match[2] ? parseInt(match[2]) : 0;
+          const ampm = match[3] ? match[3].toLowerCase() : null;
+          
+          if (ampm === 'pm' && h < 12) h += 12;
+          if (ampm === 'am' && h === 12) h = 0;
+          return { hours: h, minutes: m };
+      }
+
+      const sTime = parseTime(startStr);
+      const eTime = parseTime(endStr);
+      
+      // If end time has am/pm but start doesn't, inherit it (e.g. "4 - 5 PM")
+      if (!startStr.match(/am|pm/i) && endStr.match(/am|pm/i)) {
+         const endAmPm = endStr.match(/am|pm/i)[0].toLowerCase();
+         if (endAmPm === 'pm' && sTime.hours < 12) sTime.hours += 12;
+         if (endAmPm === 'am' && sTime.hours === 12) sTime.hours = 0;
+      }
+
+      const startDate = new Date(parsedDate);
+      startDate.setHours(sTime.hours, sTime.minutes, 0, 0);
+
+      const endDate = new Date(parsedDate);
+      endDate.setHours(eTime.hours, eTime.minutes, 0, 0);
+
+      function formatUTC(d) {
+        const yyyy = d.getUTCFullYear();
+        const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const dd = String(d.getUTCDate()).padStart(2, "0");
+        const hh = String(d.getUTCHours()).padStart(2, "0");
+        const min = String(d.getUTCMinutes()).padStart(2, "0");
+        const ss = String(d.getUTCSeconds()).padStart(2, "0");
+        return `${yyyy}${mm}${dd}T${hh}${min}${ss}Z`; 
+      }
+
+      return { 
+          start: formatUTC(startDate), 
+          end: formatUTC(endDate) 
+      };
+    }
+
+    function scrollToBottom() {
+      // Defer to next frame so appended nodes are measured
+      requestAnimationFrame(() => {
+        const body = document.querySelector(".chat-body");
+        body.scrollTop = body.scrollHeight;
+      });
+    }
+
+    function createMessageRow(role, text) {
+      const row = document.createElement("div");
+      row.className = "message-row " + (role === "client" ? "user" : "ai");
+
+      const col = document.createElement("div");
+      col.style.display = "flex";
+      col.style.flexDirection = "column";
+      col.style.gap = "8px";
+      col.style.maxWidth = "80%";
+      col.style.alignItems = role === "client" ? "flex-end" : "flex-start";
+      col.className = "message-col";
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble " + (role === "client" ? "user" : "ai");
+      bubble.style.maxWidth = "100%";
+
+      let cardStr = "";
+
+      if (role === "client") {
+        bubble.textContent = text;
+      } else {
+        const parsed = renderAiMarkdown(text);
+        if (parsed.html) {
+            bubble.innerHTML = parsed.html;
+        } else {
+            bubble.style.display = 'none'; // hide bubble if AI only output the card block
+        }
+        cardStr = parsed.card;
+      }
+
+      col.appendChild(bubble);
+
+      if (cardStr) {
+          const cardContainer = document.createElement("div");
+          cardContainer.style.width = "100%";
+          cardContainer.style.maxWidth = "360px";
+          cardContainer.innerHTML = cardStr;
+          col.appendChild(cardContainer);
+      }
+
+      row.appendChild(col);
+      return row;
+    }
+
+    function appendMessage(role, text, animate = false) {
+      const row = createMessageRow(role, "");
+      messagesEl.appendChild(row);
+
+      const col = row.querySelector(".message-col");
+      const bubble = row.querySelector(".bubble");
+
+      if (!animate || role === "client") {
+        if (role === "client") {
+            bubble.textContent = text;
+            bubble.style.display = "block";
+        } else {
+            const parsed = renderAiMarkdown(text);
+            if (parsed.html) {
+                bubble.innerHTML = parsed.html;
+                bubble.style.display = "block";
+            } else {
+                bubble.style.display = "none";
+            }
+            if (parsed.card) {
+                const c = document.createElement("div");
+                c.style.width = "100%";
+                c.style.maxWidth = "360px";
+                c.innerHTML = parsed.card;
+                col.appendChild(c);
+            }
+        }
+        scrollToBottom();
+        return;
+      }
+
+      const parsed = renderAiMarkdown(text);
+      const htmlText = parsed.html;
+      const cardText = parsed.card;
+
+      if (!htmlText) {
+          bubble.style.display = "none";
+      } else {
+          bubble.style.display = "block";
+      }
+
+      const clone = bubble.cloneNode(true);
+      clone.innerHTML = "";
+      col.replaceChild(clone, bubble);
+
+      let i = 0;
+      let curr = "";
+      function step() {
+        if (i < htmlText.length) {
+          if (htmlText[i] === "<") {
+            const closeIdx = htmlText.indexOf(">", i);
+            if (closeIdx !== -1) {
+              curr += htmlText.substring(i, closeIdx + 1);
+              i = closeIdx + 1;
+            }
+          }
+          if (i < htmlText.length) {
+            curr += htmlText.charAt(i);
+            i++;
+          }
+          clone.innerHTML = curr;
+          scrollToBottom();
+          requestAnimationFrame(step);
+        } else if (cardText) {
+            const c = document.createElement("div");
+            c.style.width = "100%";
+            c.style.maxWidth = "360px";
+            c.style.opacity = "0";
+            c.style.transform = "translateY(10px)";
+            c.style.transition = "all 0.4s ease";
+            c.innerHTML = cardText;
+            col.appendChild(c);
+            
+            // trigger reflow
+            void c.offsetWidth;
+            c.style.opacity = "1";
+            c.style.transform = "translateY(0)";
+            scrollToBottom();
+        }
+      }
+      step();
+    }
+
+    let typingRow = null;
+
+    function showTypingIndicator() {
+      if (typingRow) return;
+      typingRow = document.createElement("div");
+      typingRow.className = "message-row ai";
+      const bubble = document.createElement("div");
+      bubble.className = "bubble ai";
+      const span = document.createElement("span");
+      span.className = "typing";
+      span.textContent = "Visa assistant is typing";
+      const dots = document.createElement("span");
+      dots.className = "typing-dots";
+      dots.innerHTML = "<span></span><span></span><span></span>";
+      span.appendChild(dots);
+      bubble.appendChild(span);
+      typingRow.appendChild(bubble);
+      messagesEl.appendChild(typingRow);
+      scrollToBottom();
+    }
+
+    function hideTypingIndicator() {
+      if (typingRow && typingRow.parentNode) {
+        typingRow.parentNode.removeChild(typingRow);
+      }
+      typingRow = null;
+    }
+
+
+
+    // Extract structured booking info from AI message
+    function extractConsultationSlot(text) {
+      if (!text) return null;
+
+      // Clean the text to remove all formatting characters to make parsing robust
+      const cleanText = text.replace(/[*#•-]/g, "");
+
+      const dateMatch = cleanText.match(/Date:\s*(.+)/i);
+      const timeMatch = cleanText.match(/Time:\s*(.+)/i);
+      const typeMatch = cleanText.match(/Meeting Type:\s*(.+)/i);
+      const visaMatch = cleanText.match(/Visa Type:\s*(.+)/i);
+
+      if (!dateMatch || !timeMatch) return null;
+
+      const dateText = dateMatch[1].trim();
+      const timeText = timeMatch[1].trim();
+      const typeText = typeMatch ? typeMatch[1].trim() : "Online";
+      const visaText = visaMatch ? visaMatch[1].trim() : "Thailand DTV Visa";
+
+      // Try to reuse the existing parser by combining the text
+      const combined = `${dateText} ${timeText}`;
+      const parsedTime = parseBookingTime(combined);
+
+      if (parsedTime) {
+        parsedTime.type = typeText;
+        parsedTime.visaType = visaText;
+        parsedTime.rawDate = dateText;
+        parsedTime.rawTime = timeText;
+      }
+      return parsedTime;
+    }
+
+    async function sendMessage(text) {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+
+      // Immediately show user message in UI
+      appendMessage("client", trimmed);
+      // Build payload for backend using current chatHistory (previous turns only)
+      const payload = {
+        clientSequence: trimmed,
+        chatHistory: chatHistory.map((m) => ({
+          role: m.role,
+          message: m.message,
+        })),
+      };
+
+      showTypingIndicator();
+      sendBtn.disabled = true;
+
+      try {
+        const res = await fetch("/generate-reply", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        hideTypingIndicator();
+
+        const aiReply =
+          (data && data.aiReply) ||
+          (data && data.error && data.error.message) ||
+          "Sorry, I had trouble generating a reply. Please try again.";
+
+        // Note: The UI card for consultation slot is dynamically generated by renderAiMarkdown now.
+        // Append AI reply to UI
+        appendMessage("consultant", aiReply, true);
+
+        // Update local chat history AFTER the round trip
+        chatHistory.push({ role: "client", message: trimmed });
+        chatHistory.push({ role: "consultant", message: aiReply });
+      } catch (err) {
+        console.error(err);
+        hideTypingIndicator();
+        appendMessage(
+          "consultant",
+          "Oops, something went wrong talking to the server. Please try again in a moment."
+        );
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    }
+
+    formEl.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const value = inputEl.value;
+      if (!value.trim()) return;
+      inputEl.value = "";
+      sendMessage(value);
+    });
+
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        formEl.dispatchEvent(new Event("submit"));
+      }
+    });
+
+    // Seed a friendly greeting from the AI so the chat doesn't feel empty
+    (function seedGreeting() {
+      const greeting =
+        "Hi there! 😊 I'm your Thailand DTV visa assistant. Tell me a bit about your situation and I’ll help you figure out the next steps.";
+      appendMessage("consultant", greeting);
+      chatHistory.push({ role: "consultant", message: greeting });
+    })();
+  </script>
+</body>
+
+</html>

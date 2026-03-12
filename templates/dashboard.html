@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Issa Compass AI Assistant Dashboard</title>
+  <style>
+    :root {
+      --bg1: #eef2ff;
+      --bg2: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: rgba(15, 23, 42, 0.10);
+      --shadow: 0 18px 55px rgba(2, 6, 23, 0.12);
+      --shadow2: 0 10px 30px rgba(2, 6, 23, 0.10);
+      --accent: #2563eb;
+      --accent2: #7c3aed;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top, var(--bg1), var(--bg2) 60%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 18px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    .header {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 26px;
+      font-weight: 750;
+      letter-spacing: 0.01em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      line-height: 1.45;
+      max-width: 78ch;
+      font-size: 14px;
+    }
+
+    .note {
+      margin-top: 6px;
+      background: rgba(37, 99, 235, 0.10);
+      border: 1px solid rgba(37, 99, 235, 0.25);
+      color: #1e3a8a;
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .card {
+      grid-column: span 6;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow2);
+      padding: 16px 16px 14px;
+      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(37, 99, 235, 0.25);
+      box-shadow: var(--shadow);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .card-left {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      min-width: 0;
+    }
+
+    .icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(124, 58, 237, 0.14));
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      flex: none;
+    }
+
+    .card-title {
+      font-weight: 700;
+      margin: 2px 0 4px;
+      font-size: 16px;
+    }
+
+    .card-desc {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .url {
+      margin-top: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      color: #334155;
+      background: rgba(15, 23, 42, 0.04);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 12px;
+      padding: 8px 10px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 650;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
+      transition: transform 90ms ease, box-shadow 90ms ease, opacity 90ms ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.24);
+    }
+
+    .btn.secondary {
+      background: rgba(15, 23, 42, 0.06);
+      color: #0f172a;
+      box-shadow: none;
+      border: 1px solid rgba(15, 23, 42, 0.10);
+    }
+
+    .btn.secondary:hover {
+      background: rgba(15, 23, 42, 0.08);
+    }
+
+    .result {
+      margin-top: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      background: rgba(15, 23, 42, 0.03);
+      padding: 10px 12px;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: #0f172a;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 44px;
+    }
+
+    .result.muted {
+      color: #64748b;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 650;
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      background: rgba(255, 255, 255, 0.8);
+      color: #0f172a;
+    }
+
+    .spinner {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      border: 2px solid rgba(37, 99, 235, 0.25);
+      border-top-color: rgba(37, 99, 235, 0.9);
+      display: inline-block;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .section {
+      margin-top: 18px;
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: var(--shadow2);
+    }
+
+    .section h2 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+    }
+
+    .instructions {
+      margin: 0;
+      padding-left: 18px;
+      color: #334155;
+      line-height: 1.55;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .instructions li b {
+      color: #0f172a;
+    }
+
+    @media (max-width: 860px) {
+      .card { grid-column: span 12; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">🚀 Issa Compass AI Assistant Dashboard</div>
+      <div class="subtitle" id="subtitle">
+        A quick launchpad for the Thailand DTV visa assistant features and APIs.
+      </div>
+      <div class="note" id="port-note">
+        If your server runs on default port 5000 instead of 5050, replace 5050 with 5000 in the URL.
+      </div>
+    </div>
+
+    <div class="grid" id="cards"></div>
+
+    <div class="section">
+      <h2>Instructions</h2>
+      <ul class="instructions" id="instructions"></ul>
+    </div>
+  </div>
+
+  <script>
+    // Convert markdown-style **bold** into HTML <b>bold</b>
+    function renderBold(text) {
+      if (!text) return "";
+      return String(text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+    }
+
+    const baseUrl = "http://127.0.0.1:5050";
+
+    const cards = [
+      {
+        emoji: "💬",
+        title: "Chat UI",
+        desc: "Open the **Chat UI** to start a conversation with the visa assistant.",
+        url: baseUrl + "/chat",
+        method: "GET",
+      },
+      {
+        emoji: "🩺",
+        title: "Health Check",
+        desc: "Quickly confirm the server is running via the root endpoint.",
+        url: baseUrl + "/",
+        method: "GET",
+      },
+      {
+        emoji: "🤖",
+        title: "Generate Reply API",
+        desc: "Use **Test Generate Reply** to send a sample POST request and view the JSON response.",
+        url: baseUrl + "/generate-reply",
+        method: "POST",
+        testId: "generate",
+      },
+      {
+        emoji: "🧠",
+        title: "Improve AI API",
+        desc: "Use **Test Improve AI** to compare AI vs a consultant reply and view the analysis.",
+        url: baseUrl + "/improve-ai",
+        method: "POST",
+        testId: "improve",
+      },
+    ];
+
+    const instructions = [
+      "Use the **Chat UI** to talk to the AI visa consultant.",
+      "Use **Test Generate Reply** to test AI responses (POST) without getting Method Not Allowed.",
+      "Use **Test Improve AI** to compare AI responses with real consultant replies (POST).",
+      "If links don't work, your server may be on port 5000 — replace **5050** with **5000**.",
+    ];
+
+    function openInNewTab(url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+
+    function prettyJson(value) {
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
+    }
+
+    async function postJson(path, body) {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = { error: { message: "Non-JSON response from server." } };
+      }
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    const cardsEl = document.getElementById("cards");
+    cards.forEach((c) => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const top = document.createElement("div");
+      top.className = "card-top";
+
+      const left = document.createElement("div");
+      left.className = "card-left";
+
+      const icon = document.createElement("div");
+      icon.className = "icon";
+      icon.textContent = c.emoji;
+
+      const textWrap = document.createElement("div");
+
+      const title = document.createElement("div");
+      title.className = "card-title";
+      title.textContent = c.title;
+
+      const desc = document.createElement("p");
+      desc.className = "card-desc";
+      desc.innerHTML = renderBold(c.desc);
+
+      textWrap.appendChild(title);
+      textWrap.appendChild(desc);
+
+      left.appendChild(icon);
+      left.appendChild(textWrap);
+
+      top.appendChild(left);
+      card.appendChild(top);
+
+      const url = document.createElement("div");
+      url.className = "url";
+      url.textContent = c.url;
+      card.appendChild(url);
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "btn secondary";
+      copyBtn.type = "button";
+      copyBtn.textContent = "Copy URL";
+      copyBtn.addEventListener("click", () => copyToClipboard(c.url));
+
+      actions.appendChild(copyBtn);
+      card.appendChild(actions);
+
+      const result = document.createElement("div");
+      result.className = "result muted";
+      result.textContent =
+        c.method === "POST"
+          ? "Result will appear here after you run the test."
+          : "Tip: Open in a new tab.";
+      card.appendChild(result);
+
+      if (c.method === "GET") {
+        const openBtn = document.createElement("button");
+        openBtn.className = "btn";
+        openBtn.type = "button";
+        openBtn.innerHTML = "Open <span aria-hidden=\"true\">↗</span>";
+        openBtn.addEventListener("click", () => openInNewTab(c.url));
+        actions.appendChild(openBtn);
+      } else {
+        const testBtn = document.createElement("button");
+        testBtn.className = "btn";
+        testBtn.type = "button";
+        testBtn.textContent =
+          c.testId === "generate" ? "Test Generate Reply" : "Test Improve AI";
+
+        const endpointPath = c.testId === "generate" ? "/generate-reply" : "/improve-ai";
+        const requestBody =
+          c.testId === "generate"
+            ? {
+                clientSequence: "I am American living in Bali. Can I apply for the DTV visa?",
+                chatHistory: [],
+              }
+            : {
+                clientSequence: "Can I apply from Bali?",
+                chatHistory: [],
+                consultantReply:
+                  "Yes, you can apply from Indonesia! Processing typically takes about 10 business days.",
+              };
+
+        testBtn.addEventListener("click", async () => {
+          testBtn.disabled = true;
+          result.classList.remove("muted");
+          result.innerHTML = `<span class="pill"><span class="spinner"></span> Sending request…</span>`;
+
+          const { ok, status, data } = await postJson(endpointPath, requestBody);
+
+          if (c.testId === "generate") {
+            // Show full JSON response so it's easy to debug
+            result.textContent = prettyJson(data);
+          } else {
+            const predicted = (data && data.predictedReply) || "";
+            const analysis = (data && data.analysis) || "";
+            if (predicted || analysis) {
+              result.innerHTML =
+                `<b>predictedReply</b>\n${predicted || "[empty]"}\n\n` +
+                `<b>analysis</b>\n${analysis || "[empty]"}`;
+            } else {
+              result.textContent = prettyJson({ status, ok, data });
+            }
+          }
+
+          if (!ok) {
+            // Ensure errors are still visible
+            result.textContent = prettyJson({ status, ok, data });
+          }
+
+          testBtn.disabled = false;
+        });
+
+        actions.appendChild(testBtn);
+      }
+
+      cardsEl.appendChild(card);
+    });
+
+    const instructionsEl = document.getElementById("instructions");
+    instructions.forEach((line) => {
+      const li = document.createElement("li");
+      li.innerHTML = renderBold(line);
+      instructionsEl.appendChild(li);
+    });
+  </script>
+</body>
+</html>
+
