@@ -11,13 +11,13 @@ By leveraging cutting-edge large language models, Issa acts as a personal visa c
 - **Premium Interface:** A modern, beautiful chat UI built with rich visuals, typing animations, and highly readable markdown-rendered AI responses.
 - **In-Chat Calendar Integration:** When a meeting time is agreed upon, a beautiful "Save the Date" card is spawned inside the chat interface featuring the date, time, meeting type (e.g. Onsite), and Visa Type. 
 - **Google Calendar Gateway:** Users can click "Save the Date" to be instantly redirected to a pre-filled Google Calendar event template.
-- **Admin Appointment Tracking:** Every generated consultation slot is systematically tracked in an internal `appointments.json` file for administrative review and team tracking. 
+- **Admin Appointment Tracking:** Every generated consultation slot is systematically tracked in a Supabase PostgreSQL database table for administrative review and team tracking, accessible via the built-in Dashboard UI. 
 
 ## 3. Tech Stack
 - **Backend:** Python 3, Flask
 - **Frontend:** Vanilla HTML, CSS, JavaScript
 - **AI Integration:** OpenAI API (`gpt-4o-mini`)
-- **Data Storage:** Local JSON (`appointments.json`)
+- **Data Storage:** Supabase PostgreSQL Database
 
 ## 4. Project Architecture
 The architecture follows a classic Client-Server model optimized for real-time AI inference:
@@ -25,17 +25,16 @@ The architecture follows a classic Client-Server model optimized for real-time A
 2. **Server (Flask):** The application validates the sequence and injects a robust System Prompt, guiding the AI on its personality, markdown structuring constraints, and how to format scheduling slots. It then calls the OpenAI API.
 3. **AI Inference:** The model generates the response, identifying if a consultation slot was successfully triggered. 
 4. **Parsing & Rendering:** The client parses the AI's markdown response. If a scheduling block is detected, it natively extracts the Date, Time, Meeting Type, and Visa Type, decoupling it from the text bubble, and animating a "Save the Date" card.
-5. **Calendar Routing:** Clicking the card pings the `/book-appointment` route, which logs the entry securely to `appointments.json` and responds with a 302 Redirect to Google Calendar with all event parameters natively populated.
+5. **Calendar Routing:** Clicking the card pings the `/book-appointment` route, which logs the entry securely to the Supabase database and responds with a 302 Redirect to Google Calendar with all event parameters natively populated.
 
 ## 5. Project Structure
 ```text
 issa-ai-assistant/
 ├── server.py              # Main Flask backend application and routing logic
-├── appointments.json      # System-managed database for internal appointment tracking
 ├── .env                   # Environment variable configuration (Ignored in Git)
 ├── templates/
 │   ├── chat.html          # Chatbot interface & client-side logic
-│   └── dashboard.html     # Administrative UI (WIP)
+│   └── dashboard.html     # Administrative UI containing recent appointments and quick links
 └── README.md              # Project documentation
 ```
 
@@ -56,7 +55,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 3. Install the required Python dependencies:
 ```bash
-pip install flask openai python-dotenv
+pip install -r requirements.txt
 ```
 
 ## 7. Environment Variables Setup
@@ -69,6 +68,8 @@ Inside `.env`, define your secret API key:
 ```env
 OPENAI_API_KEY=sk-your-openai-api-key-here
 PORT=5000
+SUPABASE_URL=your-supabase-project-url
+SUPABASE_KEY=your-supabase-anon-key
 ```
 
 ## 8. Running the Project
@@ -82,18 +83,17 @@ Open your web browser and navigate to: [http://localhost:5000/chat](http://local
 - `GET /`: Health check route verifying the app is running.
 - `GET /chat`: Renders the main chat application UI.
 - `POST /generate-reply`: Accepts `{ clientSequence: str, chatHistory: list }`. Queries OpenAI and returns the AI's markdown-formatted string.
-- `GET /book-appointment`: Accepts URL query parameters `start`, `end`, `type`, and `visa_type`. Logs the event to `appointments.json` and issues a 302 redirect to the Google Calendar `TEMPLATE` action URL.
+- `GET /book-appointment`: Accepts URL query parameters `start`, `end`, `type`, and `visa_type`. Logs the event to Supabase and issues a 302 redirect to the Google Calendar `TEMPLATE` action URL.
+- `GET /api/appointments`: Fetches the 50 most recent appointments from Supabase for the dashboard UI.
+- `GET /dashboard`: Administrative dashboard containing quick-test API buttons and a table rendering real-time appointments.
 
 ## 10. Calendar Integration Explanation
 The Google Calendar integration operates without the overhead of OAuth. By carefully formatting the event details into Google's `calendar.google.com/calendar/render?action=TEMPLATE` URL endpoint, users are brought directly to their own familiar calendar app with the Title, Times, and details correctly pre-populated, leaving the user in full control of their own schedule. 
 
 ## 11. Appointment Tracking System
-To provide the administration team with visibility into scheduled events, the backend maintains a lightweight local database file: `appointments.json`. 
-When a user clicks "Save the Date", the `/book-appointment` route intercepts the request momentarily, appending a new record to the JSON array containing the Date, Time, Location, Visa Type, and an explicit `booked_at` UTC timestamp. This ensures the team has a permanent ledger of all prospective client consultations generated by the AI.
+To provide the administration team with visibility into scheduled events, the backend maintains a connection to a remote Supabase PostgreSQL database. 
+When a user clicks "Save the Date", the `/book-appointment` route intercepts the request momentarily, appending a new row to the database containing the Date, Time, Location, Visa Type, and an explicit `booked_at` UTC timestamp. This ensures the team has a permanent ledger of all prospective client consultations generated by the AI that persists safely across server restarts natively supported by platforms like Render.
 
-## 12. Future Improvements
-- **Database Migration:** Transition from `appointments.json` to a robust relational database like PostgreSQL or SQLite.
-- **Admin Dashboard Integration:** Build out `/dashboard.html` to consume the appointments data and provide visualization/analytics for the consulting team.
 - **OAuth Google Calendar:** Integrate formal Google Calendar API OAuth to natively inject events onto the company's master calendar in real-time.
 - **Document RAG:** Implement Retrieval-Augmented Generation (RAG) to allow the AI to actively read from official Thai Embassy PDFs to ensure changing laws are correctly cited. 
 
