@@ -60,15 +60,7 @@
       font-size: 14px;
     }
 
-    .note {
-      margin-top: 6px;
-      background: rgba(37, 99, 235, 0.10);
-      border: 1px solid rgba(37, 99, 235, 0.25);
-      color: #1e3a8a;
-      padding: 10px 12px;
-      border-radius: 14px;
-      font-size: 13px;
-    }
+
 
     .grid {
       display: grid;
@@ -252,19 +244,49 @@
       letter-spacing: 0.01em;
     }
 
-    .instructions {
-      margin: 0;
-      padding-left: 18px;
-      color: #334155;
-      line-height: 1.55;
-      font-size: 13px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+
+
+    .table-container {
+      margin-top: 18px;
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      background: #fff;
     }
 
-    .instructions li b {
-      color: #0f172a;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+      white-space: nowrap;
+    }
+
+    th {
+      background: rgba(248, 250, 252, 0.8);
+      font-weight: 700;
+      color: #334155;
+      letter-spacing: 0.01em;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(248, 250, 252, 0.5);
+    }
+
+    .empty-state {
+      padding: 24px;
+      text-align: center;
+      color: #64748b;
+      font-size: 13.5px;
     }
 
     @media (max-width: 860px) {
@@ -279,16 +301,36 @@
       <div class="subtitle" id="subtitle">
         A quick launchpad for the Thailand DTV visa assistant features and APIs.
       </div>
-      <div class="note" id="port-note">
-        If your server runs on default port 5000 instead of 5050, replace 5050 with 5000 in the URL.
-      </div>
     </div>
 
     <div class="grid" id="cards"></div>
 
-    <div class="section">
-      <h2>Instructions</h2>
-      <ul class="instructions" id="instructions"></ul>
+    <div class="section" id="appointments-section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h2 style="margin: 0;">Recent Appointments</h2>
+        <button id="refresh-appointments" class="btn secondary" style="padding: 6px 12px; font-size: 12px; margin: 0;">Refresh ↻</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Date Booked</th>
+              <th>Meeting Start</th>
+              <th>Meeting End</th>
+              <th>Visa Type</th>
+              <th>Meeting Type</th>
+              <th>Location</th>
+            </tr>
+          </thead>
+          <tbody id="appointments-body">
+            <tr>
+              <td colspan="6" class="empty-state">
+                <span class="spinner"></span> Loading appointments...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -299,28 +341,29 @@
       return String(text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
     }
 
-    const baseUrl = "http://127.0.0.1:5050";
+    // If running in development via file://, fallback to the default flask port 5000
+    const baseUrl = window.location.protocol === "file:" || window.location.hostname === "" ? "http://127.0.0.1:5000" : "";
 
     const cards = [
       {
         emoji: "💬",
         title: "Chat UI",
         desc: "Open the **Chat UI** to start a conversation with the visa assistant.",
-        url: baseUrl + "/chat",
+        url: "/chat",
         method: "GET",
       },
       {
         emoji: "🩺",
         title: "Health Check",
         desc: "Quickly confirm the server is running via the root endpoint.",
-        url: baseUrl + "/",
+        url: "/",
         method: "GET",
       },
       {
         emoji: "🤖",
         title: "Generate Reply API",
         desc: "Use **Test Generate Reply** to send a sample POST request and view the JSON response.",
-        url: baseUrl + "/generate-reply",
+        url: "/generate-reply",
         method: "POST",
         testId: "generate",
       },
@@ -328,18 +371,13 @@
         emoji: "🧠",
         title: "Improve AI API",
         desc: "Use **Test Improve AI** to compare AI vs a consultant reply and view the analysis.",
-        url: baseUrl + "/improve-ai",
+        url: "/improve-ai",
         method: "POST",
         testId: "improve",
       },
     ];
 
-    const instructions = [
-      "Use the **Chat UI** to talk to the AI visa consultant.",
-      "Use **Test Generate Reply** to test AI responses (POST) without getting Method Not Allowed.",
-      "Use **Test Improve AI** to compare AI responses with real consultant replies (POST).",
-      "If links don't work, your server may be on port 5000 — replace **5050** with **5000**.",
-    ];
+
 
     function openInNewTab(url) {
       window.open(url, "_blank", "noopener,noreferrer");
@@ -495,12 +533,68 @@
       cardsEl.appendChild(card);
     });
 
-    const instructionsEl = document.getElementById("instructions");
-    instructions.forEach((line) => {
-      const li = document.createElement("li");
-      li.innerHTML = renderBold(line);
-      instructionsEl.appendChild(li);
+    // Fetch and display appointments
+    const aptBody = document.getElementById("appointments-body");
+    const refreshBtn = document.getElementById("refresh-appointments");
+
+    async function loadAppointments() {
+      aptBody.innerHTML = `<tr><td colspan="6" class="empty-state"><span class="spinner"></span> Loading appointments...</td></tr>`;
+      try {
+        const res = await fetch(baseUrl + "/api/appointments");
+        let data;
+        try {
+          data = await res.json();
+        } catch (e) {
+          data = { error: "Invalid JSON response" };
+        }
+
+        if (!res.ok) {
+          aptBody.innerHTML = `<tr><td colspan="6" class="empty-state" style="color: #ef4444;">Error: ${data.error || 'Failed to fetch'}</td></tr>`;
+          return;
+        }
+
+        if (!Array.isArray(data) || data.length === 0) {
+          aptBody.innerHTML = `<tr><td colspan="6" class="empty-state">No appointments found.</td></tr>`;
+          return;
+        }
+
+        aptBody.innerHTML = "";
+        data.forEach(row => {
+          const tr = document.createElement("tr");
+
+          // Format created_at safely
+          let bookedDateStr = row.booked_at || row.created_at;
+          if (bookedDateStr) {
+            try {
+              const d = new Date(bookedDateStr);
+              bookedDateStr = d.toLocaleString(undefined, {
+                month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
+              });
+            } catch (e) {}
+          }
+
+          tr.innerHTML = `
+            <td>${bookedDateStr || '—'}</td>
+            <td style="font-weight: 500;">${row.start_time || '—'}</td>
+            <td>${row.end_time || '—'}</td>
+            <td><span class="pill">${row.visa_type || '—'}</span></td>
+            <td>${row.type || '—'}</td>
+            <td style="color: #64748b;">${row.location || '—'}</td>
+          `;
+          aptBody.appendChild(tr);
+        });
+      } catch (err) {
+        aptBody.innerHTML = `<tr><td colspan="6" class="empty-state" style="color: #ef4444;">Failed to connect to server.</td></tr>`;
+      }
+    }
+
+    refreshBtn.addEventListener("click", () => {
+      refreshBtn.disabled = true;
+      loadAppointments().finally(() => refreshBtn.disabled = false);
     });
+
+    // Load on start
+    loadAppointments();
   </script>
 </body>
 </html>
