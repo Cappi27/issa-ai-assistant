@@ -324,10 +324,10 @@
       let processedText = String(text);
 
       // Forcefully sanitize malformed markdown bullet points from the AI
-      processedText = processedText.replace(/\*Date:\*\*/g, "**Date:**");
-      processedText = processedText.replace(/\*Time:\*\*/g, "**Time:**");
-      processedText = processedText.replace(/\*Meeting Type:\*\*/g, "**Meeting Type:**");
-      processedText = processedText.replace(/\*Visa Type:\*\*/g, "**Visa Type:**");
+      processedText = processedText.replace(/^[\s*•-]*\**Date:\**\s*/gim, "**Date:** ");
+      processedText = processedText.replace(/^[\s*•-]*\**Time:\**\s*/gim, "**Time:** ");
+      processedText = processedText.replace(/^[\s*•-]*\**Meeting Type:\**\s*/gim, "**Meeting Type:** ");
+      processedText = processedText.replace(/^[\s*•-]*\**Visa Type:\**\s*/gim, "**Visa Type:** ");
 
       let cardHtml = "";
 
